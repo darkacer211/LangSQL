@@ -18,7 +18,9 @@ import {
   Sparkles,
   MessageSquare,
   Zap,
-  History
+  History,
+  MenuIcon,
+  X
 } from 'lucide-react'
 import Editor from '@monaco-editor/react'
 import DashboardLayout from '../components/layout/DashboardLayout'
@@ -31,6 +33,7 @@ const QueryBuilder = () => {
   const [input, setInput] = useState('')
   const [output, setOutput] = useState('')
   const [selectedDb, setSelectedDb] = useState(null)
+  const [selectedDialect, setSelectedDialect] = useState('postgresql')
   const [expandedSchemas, setExpandedSchemas] = useState({})
   const [expandedTables, setExpandedTables] = useState({})
   const [isLoading, setIsLoading] = useState(false)
@@ -91,6 +94,15 @@ const QueryBuilder = () => {
   const [isExplaining, setIsExplaining] = useState(false)
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [suggestions, setSuggestions] = useState([])
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(true)
+
+  const dialects = [
+    { id: 'postgresql', name: 'PostgreSQL' },
+    { id: 'mysql', name: 'MySQL' },
+    { id: 'trino', name: 'Trino' },
+    { id: 'spark', name: 'Spark SQL' }
+  ]
 
   // Mock databases and their schemas (replace with real data from your backend)
   const mockDatabases = [
@@ -166,7 +178,10 @@ const QueryBuilder = () => {
   }
 
   const handleNaturalLanguageQuery = async () => {
-    if (!input.trim() || !selectedDb) return
+    if (!input.trim() || !selectedDb) {
+      showError('Please enter a query and select a database')
+      return
+    }
     
     setIsLoading(true)
     try {
@@ -317,7 +332,7 @@ const QueryBuilder = () => {
       return
     }
     
-    if (!activeConnection) {
+    if (!selectedDb) {
       showError('Please connect to a database first')
       return
     }
@@ -385,31 +400,24 @@ const QueryBuilder = () => {
     showSuccess('Results downloaded successfully!')
   }
 
-  // Database connection prompt component
-  const ConnectionPrompt = () => (
-    <div className="flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
-      <AlertCircle className="w-12 h-12 text-yellow-500 mb-4" />
-      <h3 className="text-xl font-semibold mb-2">No Database Connected</h3>
-      <p className="text-gray-600 dark:text-gray-400 text-center mb-4">
-        Please connect to a database to start generating and executing queries.
-      </p>
-      <button
-        onClick={() => navigate('/connect-database')}
-        className="btn btn-primary flex items-center space-x-2"
-      >
-        <Database className="w-4 h-4" />
-        <span>Connect Database</span>
-      </button>
-    </div>
-  )
-
   return (
     <DashboardLayout>
-      <div className="h-screen bg-background text-foreground">
-        <div className="flex h-full">
-          {/* Database Sidebar - Left Section */}
-          <div className="w-72 border-r border-border overflow-y-auto bg-background shadow-lg">
-            <div className="p-4 sticky top-0 bg-background z-10 border-b border-border backdrop-blur-sm bg-background/80">
+      <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background text-foreground relative">
+        {/* Mobile Sidebar Toggle */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="lg:hidden fixed bottom-4 left-4 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          aria-label="Toggle Database Explorer"
+        >
+          {isSidebarOpen ? <X className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
+        </button>
+
+        {/* Database Sidebar - Left Section */}
+        <div className={`w-full sm:w-80 lg:w-64 xl:w-72 flex-shrink-0 border-r border-border bg-background transition-all duration-300 transform ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 fixed lg:relative h-full z-40 overflow-hidden`}>
+          <div className="h-full flex flex-col">
+            <div className="p-4 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold tracking-tight">Databases</h2>
                 <button 
@@ -420,11 +428,12 @@ const QueryBuilder = () => {
                 </button>
               </div>
             </div>
-            <div className="p-4">
-              <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]">
+              <div className="space-y-2">
                 {mockDatabases.map(db => (
                   <div key={db.name} className="space-y-1">
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
                       onClick={() => handleSelectDatabase(db.name)}
                       className={`flex items-center w-full p-3 rounded-lg text-sm transition-all duration-200 ${
                         selectedDb === db.name 
@@ -434,9 +443,13 @@ const QueryBuilder = () => {
                     >
                       <Database className="w-4 h-4 mr-2" />
                       {db.name}
-                    </button>
+                    </motion.button>
                     {selectedDb === db.name && (
-                      <div className="ml-4">
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="ml-4"
+                      >
                         {db.schemas.map(schema => (
                           <div key={schema.name}>
                             <button
@@ -452,14 +465,15 @@ const QueryBuilder = () => {
                               {schema.name}
                             </button>
                             {expandedSchemas[`${db.name}.${schema.name}`] && (
-                              <div className="ml-7">
+                              <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="ml-7"
+                              >
                                 {schema.tables.map(table => (
                                   <div key={table.name}>
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleTableClick(table.name)
-                                      }}
+                                      onClick={() => handleTableClick(table.name)}
                                       className="flex items-center w-full p-2.5 text-sm hover:bg-accent rounded-lg transition-all duration-200 group"
                                     >
                                       {expandedTables[`${db.name}.${schema.name}.${table.name}`] ? (
@@ -481,7 +495,11 @@ const QueryBuilder = () => {
                                       </button>
                                     </button>
                                     {expandedTables[`${db.name}.${schema.name}.${table.name}`] && (
-                                      <div className="ml-7 border-l border-border">
+                                      <motion.div 
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="ml-7 border-l border-border"
+                                      >
                                         {table.columns.map(column => (
                                           <div
                                             key={column.name}
@@ -500,59 +518,87 @@ const QueryBuilder = () => {
                                             </span>
                                           </div>
                                         ))}
-                                      </div>
+                                      </motion.div>
                                     )}
                                   </div>
                                 ))}
-                              </div>
+                              </motion.div>
                             )}
                           </div>
                         ))}
-                      </div>
+                      </motion.div>
                     )}
                   </div>
                 ))}
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Main Content - Middle Section */}
-          <div className="flex-1 flex flex-col overflow-hidden border-r border-border bg-background">
-            <div className="p-8 space-y-6 max-w-[1200px] mx-auto w-full">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-background relative">
+          <div className="h-full overflow-y-auto pb-20 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]">
+            <div className="max-w-[1200px] mx-auto px-4 lg:px-6 py-6 space-y-6">
               {/* Mode Toggle */}
-              <div className="flex items-center space-x-4 mb-8 bg-background p-1.5 rounded-lg border border-border shadow-sm">
-                <button
-                  onClick={() => setAiMode('natural')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-lg flex-1 justify-center transition-all duration-200 ${
-                    aiMode === 'natural'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'hover:bg-accent hover:shadow-sm'
-                  }`}
-                >
-                  <Wand2 className="w-4 h-4" />
-                  <span>Natural Language</span>
-                </button>
-                <button
-                  onClick={() => setAiMode('sql')}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-lg flex-1 justify-center transition-all duration-200 ${
-                    aiMode === 'sql'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'hover:bg-accent hover:shadow-sm'
-                  }`}
-                >
-                  <Database className="w-4 h-4" />
-                  <span>SQL</span>
-                </button>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm py-4"
+              >
+                <div className="flex items-center space-x-4 bg-background p-1.5 rounded-lg border border-border shadow-sm">
+                  <button
+                    onClick={() => setAiMode('natural')}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg flex-1 justify-center transition-all duration-200 ${
+                      aiMode === 'natural'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'hover:bg-accent hover:shadow-sm'
+                    }`}
+                  >
+                    <Wand2 className="w-4 h-4" />
+                    <span>Natural Language</span>
+                  </button>
+                  <button
+                    onClick={() => setAiMode('sql')}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg flex-1 justify-center transition-all duration-200 ${
+                      aiMode === 'sql'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'hover:bg-accent hover:shadow-sm'
+                    }`}
+                  >
+                    <Database className="w-4 h-4" />
+                    <span>SQL</span>
+                  </button>
+                </div>
+              </motion.div>
 
               {/* Input Section */}
               {aiMode === 'natural' && (
-                <div className="space-y-4 bg-background p-8 rounded-xl shadow-sm border border-border">
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xl font-semibold tracking-tight">Describe your query</h2>
-                    <div className="flex items-center space-x-2 px-4 py-1.5 bg-accent rounded-lg shadow-sm">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                      <span className="text-sm">AI-Powered</span>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-background p-4 lg:p-6 rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold tracking-tight mb-4 lg:mb-0">Describe your query</h2>
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center space-y-3 lg:space-y-0 lg:space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <label className="text-sm font-medium">SQL Dialect:</label>
+                        <select
+                          value={selectedDialect}
+                          onChange={(e) => setSelectedDialect(e.target.value)}
+                          className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        >
+                          {dialects.map(dialect => (
+                            <option key={dialect.id} value={dialect.id}>
+                              {dialect.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center space-x-2 px-4 py-1.5 bg-accent rounded-lg shadow-sm">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        <span className="text-sm">AI-Powered</span>
+                      </div>
                     </div>
                   </div>
                   <div className="relative">
@@ -560,16 +606,16 @@ const QueryBuilder = () => {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder="Describe what you want to query in plain English. For example: 'Show me all users who have placed more than 5 orders'"
-                      className="w-full h-32 p-5 text-base border border-border rounded-xl bg-accent text-foreground resize-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                      className="w-full h-32 lg:h-40 p-4 text-base border border-border rounded-xl bg-accent text-foreground resize-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
                     />
                   </div>
                   <button
                     onClick={handleNaturalLanguageQuery}
                     disabled={isLoading || !input.trim() || !selectedDb}
-                    className="w-full px-5 py-3.5 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground rounded-lg flex items-center justify-center space-x-3 transition-all duration-200 shadow-sm font-medium"
+                    className="w-full mt-4 px-5 py-3.5 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground rounded-lg flex items-center justify-center space-x-3 transition-all duration-200 shadow-sm font-medium"
                   >
                     {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
                         <Wand2 className="w-5 h-5" />
@@ -577,13 +623,18 @@ const QueryBuilder = () => {
                       </>
                     )}
                   </button>
-                </div>
+                </motion.div>
               )}
 
               {/* SQL Editor Section */}
-              <div className="space-y-4 bg-background p-8 rounded-xl shadow-sm border border-border">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-4">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-background p-4 lg:p-6 rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-4">
+                  <div className="flex flex-col lg:flex-row lg:items-center space-y-3 lg:space-y-0 lg:space-x-4 mb-4 lg:mb-0">
                     <h2 className="text-xl font-semibold tracking-tight">SQL Query</h2>
                     {selectedDb && (
                       <span className="px-4 py-1.5 bg-accent text-accent-foreground rounded-lg text-sm shadow-sm">
@@ -591,11 +642,11 @@ const QueryBuilder = () => {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
                     <button
                       onClick={handleExplainQuery}
                       disabled={!output || isExplaining}
-                      className="p-2.5 hover:bg-accent rounded-lg transition-all duration-200 disabled:opacity-50"
+                      className="p-2.5 hover:bg-accent rounded-lg transition-all duration-200 disabled:opacity-50 tooltip"
                       title="Explain Query"
                     >
                       <MessageSquare className="w-5 h-5" />
@@ -603,7 +654,7 @@ const QueryBuilder = () => {
                     <button
                       onClick={handleOptimizeQuery}
                       disabled={!output || isOptimizing}
-                      className="p-2.5 hover:bg-accent rounded-lg transition-all duration-200 disabled:opacity-50"
+                      className="p-2.5 hover:bg-accent rounded-lg transition-all duration-200 disabled:opacity-50 tooltip"
                       title="Optimize Query"
                     >
                       <Zap className="w-5 h-5" />
@@ -611,7 +662,7 @@ const QueryBuilder = () => {
                     <button
                       onClick={handleCopy}
                       disabled={!output}
-                      className="p-2.5 hover:bg-accent rounded-lg transition-all duration-200 disabled:opacity-50"
+                      className="p-2.5 hover:bg-accent rounded-lg transition-all duration-200 disabled:opacity-50 tooltip"
                       title="Copy to clipboard"
                     >
                       <Copy className="w-5 h-5" />
@@ -619,7 +670,7 @@ const QueryBuilder = () => {
                     <button
                       onClick={handleSave}
                       disabled={!output}
-                      className="p-2.5 hover:bg-accent rounded-lg transition-all duration-200 disabled:opacity-50"
+                      className="p-2.5 hover:bg-accent rounded-lg transition-all duration-200 disabled:opacity-50 tooltip"
                       title="Save query"
                     >
                       <Save className="w-5 h-5" />
@@ -627,10 +678,9 @@ const QueryBuilder = () => {
                   </div>
                 </div>
 
-                {/* Monaco Editor */}
-                <div className="relative h-56 rounded-xl overflow-hidden border border-border shadow-sm">
+                <div className="relative min-h-[200px] max-h-[400px] rounded-xl overflow-hidden border border-border shadow-sm">
                   <Editor
-                    height="100%"
+                    height="200px"
                     defaultLanguage="sql"
                     value={output}
                     onChange={setOutput}
@@ -640,33 +690,50 @@ const QueryBuilder = () => {
                       fontSize: 14,
                       lineNumbers: 'on',
                       scrollBeyondLastLine: false,
-                      padding: { top: 10, bottom: 10 },
+                      padding: { top: 16, bottom: 16 },
                       roundedSelection: true,
+                      automaticLayout: true,
+                      wordWrap: 'on',
+                      lineHeight: 1.5,
+                      folding: false,
+                      renderLineHighlight: 'all',
+                      smoothScrolling: true,
+                      cursorSmoothCaretAnimation: true,
+                      scrollbar: {
+                        vertical: 'hidden',
+                        horizontal: 'hidden',
+                        verticalScrollbarSize: 0,
+                        horizontalScrollbarSize: 0
+                      }
                     }}
                   />
                 </div>
 
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mt-4 space-y-4 lg:space-y-0">
                   {suggestions.length > 0 && (
-                    <div className="flex-1 mr-6 p-5 bg-accent rounded-lg shadow-sm">
-                      <h3 className="text-sm font-medium mb-2">AI Suggestions:</h3>
-                      <ul className="space-y-2">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex-1 mr-6 p-4 lg:p-5 bg-accent rounded-lg shadow-sm"
+                    >
+                      <h3 className="text-sm font-medium mb-3">AI Suggestions:</h3>
+                      <ul className="space-y-2.5">
                         {suggestions.map((suggestion, index) => (
-                          <li key={index} className="flex items-start space-x-2 text-sm text-muted-foreground">
+                          <li key={index} className="flex items-start space-x-2.5 text-sm text-muted-foreground">
                             <Sparkles className="w-4 h-4 text-primary mt-0.5" />
                             <span>{suggestion}</span>
                           </li>
                         ))}
                       </ul>
-                    </div>
+                    </motion.div>
                   )}
                   <button
                     onClick={handleExecute}
                     disabled={isExecuting || !output.trim() || !selectedDb}
-                    className="px-6 py-3.5 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground rounded-lg flex items-center space-x-3 transition-all duration-200 shadow-sm font-medium"
+                    className="px-6 py-3.5 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground rounded-lg flex items-center space-x-3 transition-all duration-200 shadow-sm font-medium min-w-[150px] justify-center sticky bottom-4 lg:static"
                   >
                     {isExecuting ? (
-                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
                         <Play className="w-5 h-5" />
@@ -675,14 +742,19 @@ const QueryBuilder = () => {
                     )}
                   </button>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Results Section */}
               {results && (
-                <div className="bg-background rounded-xl shadow-sm border border-border overflow-hidden">
-                  <div className="p-5 border-b border-border bg-background/80 backdrop-blur-sm sticky top-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-background rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden mb-20"
+                >
+                  <div className="p-4 lg:p-5 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-3 lg:space-y-0">
+                      <div className="flex flex-col lg:flex-row lg:items-center space-y-2 lg:space-y-0 lg:space-x-6">
                         <div className="flex items-center space-x-2 text-muted-foreground">
                           <Clock className="w-4 h-4" />
                           <span>{results.metadata.executionTime}</span>
@@ -694,14 +766,14 @@ const QueryBuilder = () => {
                       </div>
                       <button
                         onClick={handleDownload}
-                        className="px-5 py-2.5 bg-accent hover:bg-accent/90 rounded-lg flex items-center space-x-3 transition-all duration-200 shadow-sm"
+                        className="px-5 py-2.5 bg-accent hover:bg-accent/90 rounded-lg flex items-center justify-center space-x-3 transition-all duration-200 shadow-sm"
                       >
                         <Download className="w-4 h-4" />
                         <span>Export CSV</span>
                       </button>
                     </div>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]">
                     <table className="w-full">
                       <thead>
                         <tr className="bg-accent/80 backdrop-blur-sm sticky top-0">
@@ -717,8 +789,11 @@ const QueryBuilder = () => {
                       </thead>
                       <tbody className="divide-y divide-border">
                         {results.data.map((row, i) => (
-                          <tr
+                          <motion.tr
                             key={i}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: i * 0.05 }}
                             className="hover:bg-accent/50 transition-colors duration-150"
                           >
                             {Object.values(row).map((value, j) => (
@@ -729,143 +804,128 @@ const QueryBuilder = () => {
                                 {value}
                               </td>
                             ))}
-                          </tr>
+                          </motion.tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </motion.div>
               )}
             </div>
           </div>
+        </div>
 
-          {/* History Sidebar - Right Section */}
-          <div className="w-80 overflow-y-auto bg-background shadow-lg">
-            <div className="p-6 space-y-8">
-              {/* Prompts History */}
-              <div>
-                <div className="flex items-center justify-between mb-6 sticky top-0 bg-background/80 backdrop-blur-sm py-2">
-                  <h2 className="text-lg font-semibold tracking-tight">Prompts History</h2>
-                  <button 
-                    className="p-2.5 hover:bg-accent rounded-lg transition-all duration-200 hover:shadow-sm"
-                    title="Clear History"
-                  >
-                    <History className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {savedQueries.map((item, index) => (
-                    <div
-                      key={index}
-                      className="p-4 bg-accent rounded-lg cursor-pointer hover:bg-accent/90 transition-colors duration-200 border border-border"
-                      onClick={() => setInput(item.query)}
-                    >
-                      <p className="text-sm text-foreground mb-2 line-clamp-2">{item.query}</p>
-                      <p className="text-xs text-muted-foreground flex items-center space-x-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{new Date(item.timestamp).toLocaleString()}</span>
-                      </p>
+        {/* History Sidebar - Right Section */}
+        <div className={`w-full sm:w-80 lg:w-72 xl:w-80 flex-shrink-0 border-l border-border bg-background transition-all duration-300 transform ${
+          isHistoryOpen ? 'translate-x-0' : 'translate-x-full'
+        } lg:translate-x-0 fixed lg:relative right-0 h-full z-40 overflow-hidden`}>
+          <div className="h-full flex flex-col">
+            <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]">
+              <div className="p-4 lg:p-6 space-y-6">
+                {/* Prompts History */}
+                <div>
+                  <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm py-2">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold tracking-tight">Prompts History</h2>
+                      <button 
+                        className="p-2.5 hover:bg-accent rounded-lg transition-all duration-200 hover:shadow-sm"
+                        title="Clear History"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
                     </div>
-                  ))}
-                  {savedQueries.length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">
-                        No prompts history yet
-                      </p>
-                    </div>
-                  )}
+                  </div>
+                  <div className="space-y-3">
+                    {savedQueries.map((item, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="p-4 bg-accent rounded-lg cursor-pointer hover:bg-accent/90 transition-all duration-200 border border-border hover:shadow-md"
+                        onClick={() => setInput(item.query)}
+                      >
+                        <p className="text-sm text-foreground mb-2 line-clamp-2">{item.query}</p>
+                        <p className="text-xs text-muted-foreground flex items-center space-x-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{new Date(item.timestamp).toLocaleString()}</span>
+                        </p>
+                      </motion.div>
+                    ))}
+                    {savedQueries.length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-sm text-muted-foreground">
+                          No prompts history yet
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Execution History */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Execution History</h2>
-                  <Clock className="w-4 h-4 text-gray-500" />
-                </div>
-                <div className="space-y-3">
-                  {[...executionHistory, ...(results ? [{
-                    query: output,
-                    timestamp: new Date(),
-                    metadata: results.metadata
-                  }] : [])].map((execution, index) => (
-                    <div key={index} className="p-4 bg-accent rounded-lg border border-border">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">
-                          {index === 0 && results ? (
-                            <span className="text-primary">Latest Execution</span>
-                          ) : (
-                            'Previous Execution'
-                          )}
-                        </span>
-                        <span className="text-xs text-muted-foreground">{execution.metadata.executionTime}</span>
+                {/* Execution History */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">Execution History</h2>
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-3">
+                    {[...executionHistory, ...(results ? [{
+                      query: output,
+                      timestamp: new Date(),
+                      metadata: results.metadata
+                    }] : [])].map((execution, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="p-4 bg-accent rounded-lg border border-border hover:shadow-md transition-all duration-200"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">
+                            {index === 0 && results ? (
+                              <span className="text-primary">Latest Execution</span>
+                            ) : (
+                              'Previous Execution'
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{execution.metadata.executionTime}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                          {execution.query}
+                        </p>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="px-2 py-1 bg-background text-foreground rounded-full">
+                            Rows: {execution.metadata.rowCount}
+                          </span>
+                          <span className="px-2 py-1 bg-background text-foreground rounded-full">
+                            Affected: {execution.metadata.affectedRows}
+                          </span>
+                        </div>
+                      </motion.div>
+                    ))}
+                    {executionHistory.length === 0 && !results && (
+                      <div className="text-center py-8">
+                        <p className="text-sm text-muted-foreground">
+                          No execution history yet
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                        {execution.query}
-                      </p>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="px-2 py-1 bg-background text-foreground rounded-full">
-                          Rows: {execution.metadata.rowCount}
-                        </span>
-                        <span className="px-2 py-1 bg-background text-foreground rounded-full">
-                          Affected: {execution.metadata.affectedRows}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {executionHistory.length === 0 && !results && (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">
-                        No execution history yet
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Recent Queries */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Recent Queries</h2>
-                </div>
-                <div className="space-y-3">
-                  {[...(output ? [{
-                    query: output,
-                    timestamp: new Date(),
-                    label: 'Current Query'
-                  }] : []), ...savedQueries.slice(0, 3).map(item => ({
-                    query: item.generated,
-                    timestamp: item.timestamp,
-                    label: 'Saved Query'
-                  }))].map((item, index) => (
-                    <div
-                      key={index}
-                      className="p-4 bg-accent rounded-lg cursor-pointer hover:bg-accent/90 transition-colors duration-200 border border-border"
-                      onClick={() => setOutput(item.query)}
-                    >
-                      <p className="text-sm text-foreground mb-2 line-clamp-2">{item.query}</p>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="px-2 py-1 bg-background text-foreground rounded-full">
-                          {item.label}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {new Date(item.timestamp).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {savedQueries.length === 0 && !output && (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">
-                        No recent queries
-                      </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Mobile History Toggle */}
+        <button
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          className="lg:hidden fixed bottom-4 right-4 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          aria-label="Toggle History"
+        >
+          <History className="w-5 h-5" />
+        </button>
       </div>
     </DashboardLayout>
   )

@@ -25,8 +25,7 @@ import { authAPI } from '../services/api'
 import { useToast } from '../contexts/ToastContext'
 import { login } from '../store/authSlice'
 
-const AuthModal = ({ show, onClose }) => {
-  const [activeTab, setActiveTab] = useState('login')
+const AuthModal = ({ isLogin, show, onClose }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
@@ -80,7 +79,7 @@ const AuthModal = ({ show, onClose }) => {
         password: '',
         confirmPassword: '',
       })
-      setActiveTab('login')
+      onClose()
     } catch (error) {
       showError(error.response?.data?.message || 'Registration failed')
     } finally {
@@ -141,196 +140,222 @@ const AuthModal = ({ show, onClose }) => {
                     className="h-12"
                   />
                 </motion.div>
+                
+                <motion.h2
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-3xl font-bold mb-2 bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent text-center"
+                >
+                  {isLogin ? 'Welcome Back' : 'Create Account'}
+                </motion.h2>
 
-                {/* Tabs */}
-                <div className="flex items-center p-1 mb-8 bg-gray-100/50 dark:bg-gray-900/50 rounded-xl backdrop-blur-xl">
-                  {['login', 'register'].map((tab) => (
-                    <motion.button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`relative flex-1 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                        activeTab === tab
-                          ? 'text-white dark:text-black'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
+                <motion.p
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-gray-600 dark:text-gray-400 text-center mb-8"
+                >
+                  {isLogin ? 'Sign in to continue to LangSQL' : 'Join the SQL revolution today'}
+                </motion.p>
+                
+                <motion.form
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  onSubmit={isLogin ? handleLogin : handleRegister}
+                  className="space-y-4"
+                >
+                  {!isLogin && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
                     >
-                      {activeTab === tab && (
-                        <motion.div
-                          layoutId="activeTab"
-                          className="absolute inset-0 bg-gradient-to-r from-blue-500 to-[#00E5FF] dark:from-[#00E5FF] dark:to-blue-500 rounded-lg"
-                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Name</label>
+                      <div className="relative group">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-[#00E5FF] transition-colors" />
+                        <input
+                          type="text"
+                          value={registerForm.name}
+                          onChange={(e) =>
+                            setRegisterForm({ ...registerForm, name: e.target.value })
+                          }
+                          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0A0B] border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:border-blue-500 dark:focus:border-[#00E5FF] focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#00E5FF]/20 transition-all"
+                          placeholder="John Doe"
                         />
-                      )}
-                      <span className="relative">
-                        {tab === 'login' ? 'Sign In' : 'Sign Up'}
-                      </span>
-                    </motion.button>
-                  ))}
-                </div>
-
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeTab}
-                    initial={{ opacity: 0, x: activeTab === 'login' ? -20 : 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: activeTab === 'login' ? 20 : -20 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <motion.form
-                      onSubmit={activeTab === 'login' ? handleLogin : handleRegister}
-                      className="space-y-4"
-                    >
-                      {activeTab === 'register' && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                        >
-                          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Name</label>
-                          <div className="relative group">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-[#00E5FF] transition-colors" />
-                            <input
-                              type="text"
-                              value={registerForm.name}
-                              onChange={(e) =>
-                                setRegisterForm({ ...registerForm, name: e.target.value })
-                              }
-                              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0A0B] border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:border-blue-500 dark:focus:border-[#00E5FF] focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#00E5FF]/20 transition-all"
-                              placeholder="John Doe"
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-                      
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Email</label>
-                        <div className="relative group">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-[#00E5FF] transition-colors" />
-                          <input
-                            type="email"
-                            value={activeTab === 'login' ? loginForm.email : registerForm.email}
-                            onChange={(e) =>
-                              activeTab === 'login'
-                                ? setLoginForm({ ...loginForm, email: e.target.value })
-                                : setRegisterForm({ ...registerForm, email: e.target.value })
-                            }
-                            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0A0B] border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:border-blue-500 dark:focus:border-[#00E5FF] focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#00E5FF]/20 transition-all"
-                            placeholder="you@example.com"
-                          />
-                        </div>
                       </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Password</label>
-                        <div className="relative group">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-[#00E5FF] transition-colors" />
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            value={activeTab === 'login' ? loginForm.password : registerForm.password}
-                            onChange={(e) =>
-                              activeTab === 'login'
-                                ? setLoginForm({ ...loginForm, password: e.target.value })
-                                : setRegisterForm({ ...registerForm, password: e.target.value })
-                            }
-                            className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#0A0A0B] border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:border-blue-500 dark:focus:border-[#00E5FF] focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#00E5FF]/20 transition-all"
-                            placeholder="••••••••"
-                          />
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2"
-                          >
-                            {showPassword ? (
-                              <EyeOff className="w-5 h-5 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-[#00E5FF] transition-colors" />
-                            ) : (
-                              <Eye className="w-5 h-5 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-[#00E5FF] transition-colors" />
-                            )}
-                          </motion.button>
-                        </div>
-                      </div>
-                      
-                      {activeTab === 'register' && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                        >
-                          <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                            Confirm Password
-                          </label>
-                          <div className="relative group">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-[#00E5FF] transition-colors" />
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              value={registerForm.confirmPassword}
-                              onChange={(e) =>
-                                setRegisterForm({
-                                  ...registerForm,
-                                  confirmPassword: e.target.value,
-                                })
-                              }
-                              className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#0A0A0B] border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:border-blue-500 dark:focus:border-[#00E5FF] focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#00E5FF]/20 transition-all"
-                              placeholder="••••••••"
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-                      
+                    </motion.div>
+                  )}
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Email</label>
+                    <div className="relative group">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-[#00E5FF] transition-colors" />
+                      <input
+                        type="email"
+                        value={isLogin ? loginForm.email : registerForm.email}
+                        onChange={(e) =>
+                          isLogin
+                            ? setLoginForm({ ...loginForm, email: e.target.value })
+                            : setRegisterForm({ ...registerForm, email: e.target.value })
+                        }
+                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0A0B] border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:border-blue-500 dark:focus:border-[#00E5FF] focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#00E5FF]/20 transition-all"
+                        placeholder="you@example.com"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Password</label>
+                    <div className="relative group">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-[#00E5FF] transition-colors" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={isLogin ? loginForm.password : registerForm.password}
+                        onChange={(e) =>
+                          isLogin
+                            ? setLoginForm({ ...loginForm, password: e.target.value })
+                            : setRegisterForm({ ...registerForm, password: e.target.value })
+                        }
+                        className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#0A0A0B] border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:border-blue-500 dark:focus:border-[#00E5FF] focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#00E5FF]/20 transition-all"
+                        placeholder="••••••••"
+                      />
                       <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-500 to-[#00E5FF] dark:from-[#00E5FF] dark:to-blue-500 text-white dark:text-black font-medium rounded-xl hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-blue-500/25 dark:shadow-[#00E5FF]/25 flex items-center justify-center space-x-2 mt-6"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2"
                       >
-                        {isLoading ? (
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="w-5 h-5 border-2 border-white dark:border-black border-t-transparent rounded-full"
-                          />
+                        {showPassword ? (
+                          <EyeOff className="w-5 h-5 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-[#00E5FF] transition-colors" />
                         ) : (
-                          <>
-                            <span>{activeTab === 'login' ? 'Sign In' : 'Create Account'}</span>
-                            <ArrowRight className="w-4 h-4" />
-                          </>
+                          <Eye className="w-5 h-5 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-[#00E5FF] transition-colors" />
                         )}
                       </motion.button>
-                    </motion.form>
-
-                    <div className="mt-8">
-                      <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                          <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                          <span className="px-2 bg-white/80 dark:bg-[#111113]/80 text-gray-500 dark:text-gray-400">
-                            Or continue with
-                          </span>
-                        </div>
+                    </div>
+                  </div>
+                  
+                  {!isLogin && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                    >
+                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                        Confirm Password
+                      </label>
+                      <div className="relative group">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-[#00E5FF] transition-colors" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={registerForm.confirmPassword}
+                          onChange={(e) =>
+                            setRegisterForm({
+                              ...registerForm,
+                              confirmPassword: e.target.value,
+                            })
+                          }
+                          className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-[#0A0A0B] border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:border-blue-500 dark:focus:border-[#00E5FF] focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#00E5FF]/20 transition-all"
+                          placeholder="••••••••"
+                        />
                       </div>
-                      
-                      <div className="mt-6 grid grid-cols-3 gap-3">
-                        {[
-                          { Icon: Github, label: 'GitHub' },
-                          { Icon: Twitter, label: 'Twitter' },
-                          { Icon: Linkedin, label: 'LinkedIn' }
-                        ].map(({ Icon, label }, index) => (
-                          <motion.button
-                            key={index}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="group flex items-center justify-center px-4 py-2.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl hover:border-blue-500 dark:hover:border-[#00E5FF] hover:bg-blue-500/5 dark:hover:bg-[#00E5FF]/5 transition-all"
-                          >
-                            <Icon className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-[#00E5FF] transition-colors" />
-                          </motion.button>
-                        ))}
+                    </motion.div>
+                  )}
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-500 to-[#00E5FF] dark:from-[#00E5FF] dark:to-blue-500 text-white dark:text-black font-medium rounded-xl hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-blue-500/25 dark:shadow-[#00E5FF]/25 flex items-center justify-center space-x-2"
+                  >
+                    {isLoading ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-white dark:border-black border-t-transparent rounded-full"
+                      />
+                    ) : (
+                      <>
+                        <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </motion.button>
+                </motion.form>
+                
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  {isLogin ? (
+                    <p className="mt-6 text-sm text-center text-gray-600 dark:text-gray-400">
+                      Don't have an account?{' '}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        onClick={() => {
+                          setLoginForm({ email: '', password: '' })
+                          onClose()
+                        }}
+                        className="text-blue-500 dark:text-[#00E5FF] hover:underline font-medium"
+                      >
+                        Sign up
+                      </motion.button>
+                    </p>
+                  ) : (
+                    <p className="mt-6 text-sm text-center text-gray-600 dark:text-gray-400">
+                      Already have an account?{' '}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        onClick={() => {
+                          setRegisterForm({
+                            name: '',
+                            email: '',
+                            password: '',
+                            confirmPassword: '',
+                          })
+                          onClose()
+                        }}
+                        className="text-blue-500 dark:text-[#00E5FF] hover:underline font-medium"
+                      >
+                        Sign in
+                      </motion.button>
+                    </p>
+                  )}
+                  
+                  <div className="mt-8">
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white/80 dark:bg-[#111113]/80 text-gray-500 dark:text-gray-400">
+                          Or continue with
+                        </span>
                       </div>
                     </div>
-                  </motion.div>
-                </AnimatePresence>
+                    
+                    <div className="mt-6 grid grid-cols-3 gap-3">
+                      {[
+                        { Icon: Github, label: 'GitHub' },
+                        { Icon: Twitter, label: 'Twitter' },
+                        { Icon: Linkedin, label: 'LinkedIn' }
+                      ].map(({ Icon, label }, index) => (
+                        <motion.button
+                          key={index}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="group flex items-center justify-center px-4 py-2.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl hover:border-blue-500 dark:hover:border-[#00E5FF] hover:bg-blue-500/5 dark:hover:bg-[#00E5FF]/5 transition-all"
+                        >
+                          <Icon className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-[#00E5FF] transition-colors" />
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
               </motion.div>
             </div>
           </div>
@@ -986,10 +1011,12 @@ const Landing = () => {
 
       {/* Auth Modals */}
       <AuthModal
+        isLogin={true}
         show={showLoginModal}
         onClose={closeLoginModal}
       />
       <AuthModal
+        isLogin={false}
         show={showRegisterModal}
         onClose={closeRegisterModal}
       />

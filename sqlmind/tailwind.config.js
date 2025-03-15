@@ -8,8 +8,14 @@ export default {
   theme: {
     extend: {
       colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: '#0ea5e9',
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
@@ -22,6 +28,7 @@ export default {
           900: '#0c4a6e',
         },
         secondary: {
+          DEFAULT: "hsl(var(--secondary))",
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',

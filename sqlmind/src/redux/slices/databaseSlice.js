@@ -1,8 +1,42 @@
 import { createSlice } from '@reduxjs/toolkit'
 
 const initialState = {
-  hasConnectedDatabase: false,
-  connections: [],
+  hasConnectedDatabase: true,
+  connections: [
+    {
+      id: 1,
+      name: "Local PostgreSQL",
+      type: "postgresql",
+      host: "localhost",
+      port: "5432",
+      database: "postgres",
+      username: "postgres",
+      status: "connected",
+      lastConnected: "2024-03-20 10:30 AM"
+    },
+    {
+      id: 2,
+      name: "Production MySQL",
+      type: "mysql",
+      host: "prod-db.example.com",
+      port: "3306",
+      database: "app_production",
+      username: "admin",
+      status: "disconnected",
+      lastConnected: "2024-03-19 3:45 PM"
+    },
+    {
+      id: 3,
+      name: "Analytics Trino",
+      type: "trino",
+      host: "trino.analytics.com",
+      port: "8080",
+      database: "analytics",
+      username: "analyst",
+      status: "connected",
+      lastConnected: "2024-03-20 9:15 AM"
+    }
+  ],
   activeConnection: null,
   isConnecting: false,
   error: null,
